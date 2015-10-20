@@ -70,9 +70,7 @@ public class OtherRanker extends AbstractRanker {
     
     // now calculate the cosine similarity between word vecs of question
     // and the passage
-    //System.out.println(Arrays.toString(this.IDFVec));
-    //System.out.println(Arrays.toString(PassageWordVec));
-    //System.out.println(CalculateCosineSimilarity(this.IDFVec, PassageWordVec));
+    
     return CalculateCosineSimilarity(this.IDFVec, PassageWordVec);
   }
   
@@ -88,17 +86,14 @@ public class OtherRanker extends AbstractRanker {
   @Override
   public List<Passage> rank(final Question question, List<Passage> passages) {
     
-    System.out.println("++ Entering Rank for OtherRanker");
+    
     // rank the passages based on cosine similarity of the word vectors between
     // Question and the Passage. Word vector of question defaults to IDFVec.
     // Word vector of the passage can be obtained from getWordVec
     
-    // printing out the order of the passages before sorting
     
-    System.out.println("\nprint before sort\n");
-    for (int i = 0; i < passages.size(); i++) {
-      System.out.println(passages.get(i).getText());
-    }
+    
+    
     
     Collections.sort(passages, new Comparator<Passage>() {
       public int compare(final Passage p1, final Passage p2) {
@@ -109,11 +104,7 @@ public class OtherRanker extends AbstractRanker {
       }
     });
     
-    // printing out the order of the passages after sorting
-    System.out.println("\nprint after sort\n");
-    for (int i = 0; i < passages.size(); i++) {
-      System.out.println(passages.get(i).getText());
-    }
+    
     
     return passages;
   }

@@ -10,6 +10,29 @@ import type.Question;
 
 public class NgramRanker extends AbstractRanker {
 
+  // Ngrams with degrees in [1, MaxDegree] will be extracted
+  
+  private int MaxDegree = 3;
+  
+  /* Builder class */
+  public static class Builder {
+    private int MaxDegree;
+    
+    public Builder(int MaxDegree) {
+      this.MaxDegree = MaxDegree;
+    }
+    
+    public NgramRanker build() {
+      return new NgramRanker(this);
+    }
+  }
+  
+  // private constructor which uses the builder class
+  private NgramRanker(Builder builder) {
+    MaxDegree = builder.MaxDegree;
+  }
+  
+  
   /**
    * Returns a score of the given passage associated with the given question.
    * 
@@ -21,22 +44,18 @@ public class NgramRanker extends AbstractRanker {
   public Double score(Question question, Passage passage) {
     // TODO Complete the implementation of this method.
     
-    // Ngrams with degrees in [1, MaxDegree] will be extracted
-    
-    int MaxDegree = 3;
-    
     // extract the ngrams from the Question
     
-    ArrayList<String> QuestionNgrams = GetNgrams(question.getSentence(), MaxDegree);
+    ArrayList<String> QuestionNgrams = GetNgrams(question.getSentence(), this.MaxDegree);
     
     // extract the ngrams from the Passage
     
-    ArrayList<String> PassageNgrams = GetNgrams(passage.getText(), MaxDegree);
+    ArrayList<String> PassageNgrams = GetNgrams(passage.getText(), this.MaxDegree);
     
     // calculate the overlap
     
     PassageNgrams.retainAll(QuestionNgrams);
-    //System.out.println((double)PassageNgrams.size()/QuestionNgrams.size());
+    
     return (double)PassageNgrams.size()/QuestionNgrams.size();
   }
   
@@ -51,12 +70,7 @@ public class NgramRanker extends AbstractRanker {
    */
   @Override
   public List<Passage> rank(final Question question, List<Passage> passages) {
-    System.out.println("++ Entering Rank for NgramRanker");
     
-    System.out.println("\nprint before sort\n");
-    for (int i = 0; i < passages.size(); i++) {
-      System.out.println(passages.get(i).getText());
-    }
     
     Collections.sort(passages, new Comparator<Passage>() {
       public int compare(final Passage p1, final Passage p2) {
@@ -66,10 +80,7 @@ public class NgramRanker extends AbstractRanker {
           return 1;
       }
     });
-    System.out.println("\nprint after sort\n");
-    for (int i = 0; i < passages.size(); i++) {
-      System.out.println(passages.get(i).getText());
-    }
+    
     return passages;
   }
   

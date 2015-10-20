@@ -3,6 +3,8 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.uima.cas.CAS;
@@ -46,18 +48,7 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
         mOutputDir.mkdirs();
       }
     }
-
-    // how about initialize the rankers in the processCas.
-    // because I think we need a new rankers for every question Passage set
-    // Initialize rankers
     
-    /*
-    compositeRanker = new CompositeRanker();
-    ngramRanker = new NgramRanker();
-    otherRanker = new OtherRanker();
-    compositeRanker.addRanker(ngramRanker);
-    compositeRanker.addRanker(otherRanker);
-    */
   }
 
   @Override
@@ -85,6 +76,15 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
       List<Question> subsetOfQuestions = RandomUtils.getRandomSubset(allQuestions, 10);
 
       // TODO: Here one needs to sort the questions in ascending order of their question ID
+      
+      Collections.sort(subsetOfQuestions, new Comparator<Question>() {
+        public int compare(final Question q1, final Question q2) {
+          if (Integer.parseInt(q1.getId()) < Integer.parseInt(q2.getId())) 
+            return -1;
+          else 
+            return 1;
+        }
+      });
 
       // initialize variable that hold values for micro and macro averages
       double F1AverageMicroSum = 0.0;
@@ -98,14 +98,14 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
       
       for (Question question : subsetOfQuestions) {
         List<Passage> passages = UimaUtils.convertFSListToList(question.getPassages(), Passage.class);
-
-        // TODO: Use the following three lists of ranked passages for your error analysis
         
         // initialize the rankers
         
         
-        ngramRanker = new NgramRanker();
+        //ngramRanker = new NgramRanker();
         
+        // initiliazing the NgramRanker object using its builder class.
+        NgramRanker ngramRanker  = new NgramRanker.Builder(3).build();
         List<Passage> ngramRankedPassages = ngramRanker.rank(question, passages);
         
         otherRanker = new OtherRanker();  
@@ -113,7 +113,7 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
         // train the otherRanker on the question and the Given Passages
         ((OtherRanker) otherRanker).train(question, passages);
         
-        //List<Passage> otherRankedPassages = otherRanker.rank(question, passages);
+        List<Passage> otherRankedPassages = otherRanker.rank(question, passages);
         
         
         compositeRanker = new CompositeRanker();
@@ -121,11 +121,11 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
         compositeRanker.addRanker(otherRanker);
         
         
-        //List<Passage> compositeRankedPassages = compositeRanker.rank(question, passages);
+        List<Passage> compositeRankedPassages = compositeRanker.rank(question, passages);
 
         Measurement m = question.getMeasurement();
         int threshold = 5;
-        m = PopulateMeasurement(m, ngramRankedPassages, threshold);
+        m = PopulateMeasurement(m, compositeRankedPassages, threshold);
         
         // TODO: Calculate actual precision, recall and F1
         double precision = 0.0;
@@ -223,6 +223,15 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
     return m;
   }
   
+  /** 
+   * Below function designates a SystemLabel to each passage. Currently, the way 
+   * it works :it gives true label to the passages that are in the top [threshold]
+   * and false otherwise.
+   * 
+   * @param List<Passage> PassagesLocal
+   * @param int threshold
+   * @return List<Passage> PassagesLocal (with SystemLabels)
+   * */
   public List<Passage> AnnotateSystemLabel(List<Passage> PassagesLocal, int threshold) {
     for (int i = 0; i < PassagesLocal.size(); i++) {
       if (i < threshold) {
@@ -236,7 +245,13 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
     return PassagesLocal; 
   }
   
-  /* The below function calculate total # of true positives */
+  /** 
+   * The below function calculate total # of true positives, based on SystemLabel
+   * and expert Label, which is the ground truth
+   * 
+   * @param List<Passage> PassagesLocal
+   * @return List<Passage> PassagesLocal
+   * */
 
   public int CalculateTP(List<Passage> PassagesLocal) {
     int TPs = 0;
@@ -247,7 +262,12 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
     return TPs;
   }
   
-  /* The below function calculates total # of false negatives */
+  /** 
+   * The below function calculates total # of false negatives
+   * 
+   * @param List<Passage> PassagesLocal
+   * @return List<Passage> PassagesLocal
+   * */
   
   public int CalculateFN(List<Passage> PassagesLocal) {
     int FNs = 0;
@@ -258,7 +278,12 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
     return FNs;
   }
   
-  /* The below function calculates total # of false positives */
+  /** 
+   * The below function calculates total # of false positives 
+   * 
+   * @param List<Passage> PassagesLocal
+   * @return List<Passage> PassagesLocal
+   * */
   
   public int CalculateFP(List<Passage> PassagesLocal) {
     int FPs = 0;
@@ -269,7 +294,12 @@ public class PassageRankingWriter extends CasConsumer_ImplBase {
     return FPs;
   }
   
-  /* The below function calculates total # of true negatives */
+  /** 
+   * The below function calculates total # of true negatives 
+   * 
+   * @param List<Passage> PassagesLocal
+   * @return List<Passage> PassagesLocal
+   * */
   
   public int CalculateTN(List<Passage> PassagesLocal) {
     int TNs = 0;
